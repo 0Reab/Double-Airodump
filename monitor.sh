@@ -13,6 +13,7 @@ Dev notes:
     instead of just using airmon-ng stop command?
 EOF
 
+
 function usage() {
     cat <<EOF
 Usage: ./monitor.sh -0 '-c 6' -1 '-c 11'
@@ -26,13 +27,10 @@ Hint: Channels 1, 6, 11 are most common.
 EOF
 }
 
+
 TERM_PROGRAM='kitty' # change me -> your terminal command
 ARG0=''              # forward wrapper args to the actual program
 ARG1=''
-
-# PIDs
-#NIC0_PID=''
-#NIC1_PID=''
 
 # colors
 R='\033[0;31m' # red
@@ -43,8 +41,9 @@ U='\033[0m'    # reset
 ERR="${R}- [ ERR ] ${U}"
 OK="${G}- [ OK ] ${U}"
 
-# restore network settings
+# restore network settings on <CTRL+C>
 trap 'unset_monitor_mode ; cleanup ; echo -e "$OK Script finished."' SIGINT
+
 
 function set_monitor_mode() {
     local err="$ERR Failed to start monitor mode for"
@@ -65,6 +64,7 @@ function set_monitor_mode() {
         echo -e "$err wlan1"
 }
 
+
 function sniff() {
     local err="$ERR Failed to start monitor mode for"
     local ok="$OK Started capturing on"
@@ -75,13 +75,11 @@ function sniff() {
 
     # cur terminal for waln1mon
     (eval "airodump-ng wlan0mon -w wlan0mon $ARG0") & # using eval for appening your optargs
-    # debug : probably gonna rework args for only wifi channels, instead of any arg appended to the command
-    #NIC1_PID=$!
 
     # new terminal for wlan0mon
     ("$TERM_PROGRAM" bash -c "airodump-ng wlan1mon -w wlan1mon $ARG1") &
-    #NIC0_PID=$!
 }
+
 
 function unset_monitor_mode() {
     local err="$ERR Failed to kill PID"
@@ -91,15 +89,6 @@ function unset_monitor_mode() {
 
     echo -e "$OK Quitting."
     echo -e "$OK Unsetting monitor mode."
-
-    # uncessary jank (kill)?
-    #kill "$NIC0_PID" &>/dev/null &&
-    #    echo -e "$ok $NIC0_PID" ||
-    #    echo -e "$err $NIC0_PID"
-
-    #kill "$NIC1_PID" &>/dev/null &&
-    #    echo -e "$ok $NIC1_PID" ||
-    #    echo -e "$err $NIC1_PID"
 
     # nic monitor mode off
     airmon-ng stop wlan0mon &>/dev/null ||
@@ -114,6 +103,7 @@ function unset_monitor_mode() {
     echo -e "$OK Network restored."
 }
 
+
 function cleanup() {
     # organize -> .cap files remain, rest moves to dump_data
     mkdir -p other_data
@@ -123,6 +113,7 @@ function cleanup() {
 
     echo -e "$OK Files organized."
 }
+
 
 function parse_args() {
     while getopts ":0:1:h" opt; do
@@ -140,6 +131,7 @@ function parse_args() {
         esac
     done
 }
+
 
 function main() {
     parse_args "$@"
